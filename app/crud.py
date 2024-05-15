@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 from app import models, schemas
 
@@ -33,3 +35,17 @@ def create_game(db: Session, game: schemas.GameCreate):
     db.commit()
     db.refresh(db_game)
     return db_game
+
+def revoke_token(db: Session, jti: str):
+    db_token = models.RevokedToken(jti=jti)
+    db.add(db_token)
+    db.commit()
+    return db_token
+
+def is_token_revoked(db: Session, jti: str):
+    return db.query(models.RevokedToken).filter(models.RevokedToken.jti == jti).first() is not None
+
+def delete_old_tokens(db: Session):
+    one_day_ago = datetime.now() - timedelta(days=1)
+    db.query(models.RevokedToken).filter(models.RevokedToken.created_at < one_day_ago).delete()
+    db.commit()

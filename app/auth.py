@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 import re
 import models, schemas, crud, database
+from app.exceptions import InvalidEmailException, InvalidPasswordException
 
 load_dotenv()  # Загружаем переменные окружения из файла .env
 
@@ -19,21 +20,26 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def validate_email(email: str):
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    if not re.match(email_regex, email):
+        raise InvalidEmailException()
+
+def validate_password(password: str):
+    if len(password) < 8:
+        raise InvalidPasswordException("Password must be at least 8 characters long")
+    if not re.search(r"\d", password):
+        raise InvalidPasswordException("Password must contain at least one digit")
+    if not re.search(r"[A-Z]", password):
+        raise InvalidPasswordException("Password must contain at least one uppercase letter")
+    if not re.search(r"[a-z]", password):
+        raise InvalidPasswordException("Password must contain at least one lowercase letter")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def validate_password(password: str):
-    if len(password) < 8:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 8 characters long")
-    if not re.search(r"\d", password):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must contain at least one digit")
-    if not re.search(r"[A-Z]", password):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must contain at least one uppercase letter")
-    if not re.search(r"[a-z]", password):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must contain at least one lowercase letter")
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(db: Session, username: str, password: str):
     user = crud.get_user_by_username(db, username=username)
