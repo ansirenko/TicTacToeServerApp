@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
-
 from sqlalchemy.orm import Session
 from app import models, schemas
+from datetime import datetime, timedelta
 
 
 def get_user(db: Session, user_id: int):
@@ -42,18 +41,24 @@ def create_game(db: Session, game: schemas.GameCreate):
     return db_game
 
 
-def revoke_token(db: Session, jti: str):
-    db_token = models.RevokedToken(jti=jti)
+def create_refresh_token(db: Session, token: str, user_id: int, expires_delta: timedelta = None):
+    expires_at = datetime.now() + expires_delta if expires_delta else datetime.now() + timedelta(days=7)
+    db_token = models.RefreshToken(token=token, user_id=user_id, expires_at=expires_at)
     db.add(db_token)
     db.commit()
     return db_token
 
 
-def is_token_revoked(db: Session, jti: str):
-    return db.query(models.RevokedToken).filter(models.RevokedToken.jti == jti).first() is not None
+def revoke_refresh_token(db: Session, token: str):
+    db.query(models.RefreshToken).filter(models.RefreshToken.token == token).delete()
+    db.commit()
+
+
+def get_refresh_token(db: Session, token: str):
+    return db.query(models.RefreshToken).filter(models.RefreshToken.token == token).first()
 
 
 def delete_old_tokens(db: Session):
     one_day_ago = datetime.now() - timedelta(days=1)
-    db.query(models.RevokedToken).filter(models.RevokedToken.created_at < one_day_ago).delete()
+    db.query(models.RefreshToken).filter(models.RefreshToken.expires_at < one_day_ago).delete()
     db.commit()

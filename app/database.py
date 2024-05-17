@@ -10,7 +10,8 @@ metadata = MetaData()
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-metadata.create_all(engine)
+metadata.drop_all(bind=engine)
+metadata.create_all(bind=engine)
 
 
 def get_db():
