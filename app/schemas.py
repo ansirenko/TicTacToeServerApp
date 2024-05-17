@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from typing import List, Optional
 
+
 class GameBase(BaseModel):
     player1_id: int
     player2_id: int
@@ -8,8 +9,10 @@ class GameBase(BaseModel):
     player2_score: int = 0
     result: Optional[str] = None
 
+
 class GameCreate(GameBase):
     pass
+
 
 class Game(GameBase):
     id: int
@@ -17,12 +20,15 @@ class Game(GameBase):
     class Config:
         from_attributes = True
 
+
 class UserBase(BaseModel):
     username: str
     email: EmailStr
 
+
 class UserCreate(UserBase):
     password: constr(min_length=8)
+
 
 class User(UserBase):
     id: int
@@ -34,9 +40,11 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None

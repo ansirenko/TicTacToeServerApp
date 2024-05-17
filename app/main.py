@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import jwt
+from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 import uvicorn
 from datetime import timedelta
@@ -12,6 +12,7 @@ from app.exceptions import EmailAlreadyRegisteredException, UserAlreadyExistsExc
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=database.engine)
+
 
 @app.post("/register/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -31,6 +32,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
     user.password = hashed_password
     return crud.create_user(db=db, user=user)
 
+
 @app.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     user = auth.authenticate_user(db, form_data.username, form_data.password)
@@ -46,6 +48,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @app.get("/users/me", response_model=schemas.User)
 def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
     if not current_user:
@@ -55,14 +58,23 @@ def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
         )
     return schemas.User.from_orm(current_user)
 
+
 @app.post("/logout")
-def logout(current_user: schemas.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db), token: str = Depends(auth.oauth2_scheme)):
-    payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
-    jti = payload.get("jti")
-    if jti:
-        crud.delete_old_tokens(db)
-        crud.revoke_token(db, jti)
+def logout(db: Session = Depends(database.get_db), token: str = Depends(auth.oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        jti = payload.get("jti")
+        if jti:
+            crud.delete_old_tokens(db)
+            crud.revoke_token(db, jti)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return {"msg": "Successfully logged out"}
+
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

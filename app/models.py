@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, DateTime, func
+from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -19,6 +20,7 @@ class User(Base):
     games_as_player1 = relationship("Game", foreign_keys='Game.player1_id', back_populates="player1")
     games_as_player2 = relationship("Game", foreign_keys='Game.player2_id', back_populates="player2")
 
+
 class Game(Base):
     __tablename__ = "games"
     id = Column(Integer, primary_key=True, index=True)
@@ -30,10 +32,11 @@ class Game(Base):
     player1 = relationship("User", foreign_keys=[player1_id], back_populates="games_as_player1")
     player2 = relationship("User", foreign_keys=[player2_id], back_populates="games_as_player2")
 
+
 class RevokedToken(Base):
     __tablename__ = "revoked_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
     jti = Column(String(255), unique=True, index=True)
-    revoked_at = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
+    revoked_at = Column(DateTime, default=datetime.now())
+    created_at = Column(DateTime, default=datetime.now(), server_default=func.now())

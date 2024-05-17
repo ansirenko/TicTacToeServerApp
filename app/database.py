@@ -12,6 +12,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 metadata.create_all(engine)
 
+
 def get_db():
     db = SessionLocal()
     try:
